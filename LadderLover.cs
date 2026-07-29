@@ -216,9 +216,9 @@ public class LadderLover : BaseSettingsPlugin<LadderLoverSettings>
         }
 
         _lastCacheCheckUtc = DateTime.UtcNow;
-        if (_ownershipCache.NeedsRefresh)
+        if (_ownershipCache.NeedsRefresh || !_ownershipCache.IsForLeague(Settings.SelectedLeagueIdentifier))
         {
-            if (Debug) DebugLog("Ownership cache needs refresh, triggering fetch");
+            if (Debug) DebugLog($"Ownership cache needs refresh (stale={_ownershipCache.NeedsRefresh}, leagueMismatch={!_ownershipCache.IsForLeague(Settings.SelectedLeagueIdentifier)})");
             TryRefreshCache(force: false);
         }
         UpdateCacheStatusDisplay();
@@ -236,7 +236,7 @@ public class LadderLover : BaseSettingsPlugin<LadderLoverSettings>
             return;
         }
 
-        if (!force && !_ownershipCache.NeedsRefresh)
+        if (!force && !_ownershipCache.NeedsRefresh && _ownershipCache.IsForLeague(Settings.SelectedLeagueIdentifier))
         {
             return;
         }

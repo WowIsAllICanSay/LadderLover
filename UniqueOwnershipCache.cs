@@ -14,6 +14,7 @@ public class UniqueOwnershipCache
     private Dictionary<string, UniqueFilterEntry> _entriesByName = new(StringComparer.OrdinalIgnoreCase);
     private DateTime _lastRefreshUtc = DateTime.MinValue;
     private DateTime? _lastFileWriteUtc;
+    private string _cachedLeagueIdentifier;
 
     public TimeSpan RefreshInterval { get; set; } = TimeSpan.FromHours(2);
 
@@ -28,6 +29,12 @@ public class UniqueOwnershipCache
     public bool IsReady => _entriesByName.Count > 0;
 
     public bool NeedsRefresh => !IsReady || (DateTime.UtcNow - _lastRefreshUtc) >= RefreshInterval;
+
+    public bool IsForLeague(string leagueIdentifier)
+    {
+        return !string.IsNullOrEmpty(leagueIdentifier) &&
+               string.Equals(_cachedLeagueIdentifier, leagueIdentifier, StringComparison.Ordinal);
+    }
 
     public void LoadFromDisk()
     {
@@ -50,6 +57,7 @@ public class UniqueOwnershipCache
                 .GroupBy(e => NormalizeName(e.Name))
                 .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
             _lastRefreshUtc = payload.RefreshedUtc;
+            _cachedLeagueIdentifier = payload.LeagueIdentifier;
             _lastFileWriteUtc = File.GetLastWriteTimeUtc(_cacheFilePath);
         }
         catch
@@ -77,26 +85,28 @@ public class UniqueOwnershipCache
     public async Task RefreshFromApi(string username, string ladderIdentifier)
     {
         var entries = await PoeladderApi.FetchUniqueFilters(username, ladderIdentifier).ConfigureAwait(false);
-        ApplyEntries(entries);
-        SaveToDisk(entries);
+        ApplyEntries(entries, ladderIdentifier);
+        SaveToDisk(entries, ladderIdentifier);
     }
 
-    private void ApplyEntries(List<UniqueFilterEntry> entries)
+    private void ApplyEntries(List<UniqueFilterEntry> entries, string ladderIdentifier)
     {
         _entriesByName = (entries ?? [])
             .Where(e => !string.IsNullOrWhiteSpace(e.Name))
             .GroupBy(e => NormalizeName(e.Name))
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
         _lastRefreshUtc = DateTime.UtcNow;
+        _cachedLeagueIdentifier = ladderIdentifier;
     }
 
-    private void SaveToDisk(List<UniqueFilterEntry> entries)
+    private void SaveToDisk(List<UniqueFilterEntry> entries, string ladderIdentifier)
     {
         try
         {
             var payload = new CachePayload
             {
                 RefreshedUtc = _lastRefreshUtc,
+                LeagueIdentifier = ladderIdentifier,
                 Entries = entries
             };
             var json = JsonConvert.SerializeObject(payload, Formatting.Indented);
@@ -121,6 +131,7 @@ public class UniqueOwnershipCache
     private class CachePayload
     {
         [JsonProperty("refreshedUtc")] public DateTime RefreshedUtc { get; set; }
+        [JsonProperty("leagueIdentifier")] public string LeagueIdentifier { get; set; }
         [JsonProperty("entries")] public List<UniqueFilterEntry> Entries { get; set; }
     }
 }
