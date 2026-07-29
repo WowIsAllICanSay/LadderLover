@@ -503,6 +503,11 @@ public class LadderLover : BaseSettingsPlugin<LadderLoverSettings>
 
                 if (candidates is { Count: > 0 })
                 {
+                    candidates = candidates.Where(c => !c.StartsWith("Replica ", StringComparison.Ordinal)).ToList();
+                }
+
+                if (candidates is { Count: > 0 })
+                {
                     var resolvedViaArt = false;
                     foreach (var candidate in candidates)
                     {
