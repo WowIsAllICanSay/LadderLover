@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "dgSpecHash": "mxgx/PgmC9U=",
+  "success": true,
+  "projectFilePath": "G:\\Game shit\\L\\Sneaky\\Helper\\Plugins\\Source\\LadderLover\\LadderLover.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\me\\.nuget\\packages\\imgui.net\\1.90.0.1\\imgui.net.1.90.0.1.nupkg.sha512",
+    "C:\\Users\\me\\.nuget\\packages\\microsoft.netcore.platforms\\1.1.0\\microsoft.netcore.platforms.1.1.0.nupkg.sha512",
+    "C:\\Users\\me\\.nuget\\packages\\netstandard.library\\1.6.1\\netstandard.library.1.6.1.nupkg.sha512",
+    "C:\\Users\\me\\.nuget\\packages\\newtonsoft.json\\13.0.3\\newtonsoft.json.13.0.3.nupkg.sha512",
+    "C:\\Users\\me\\.nuget\\packages\\sharpdx\\4.2.0\\sharpdx.4.2.0.nupkg.sha512",
+    "C:\\Users\\me\\.nuget\\packages\\sharpdx.mathematics\\4.2.0\\sharpdx.mathematics.4.2.0.nupkg.sha512"
+  ],
+  "logs": []
+}
