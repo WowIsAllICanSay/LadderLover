@@ -39,6 +39,7 @@ public class LadderLover : BaseSettingsPlugin<LadderLoverSettings>
     private int _debugNameMissCount;
 
     private string _debugLogPath;
+    private string _soundFilePath;
     private const long MaxDebugLogBytes = 512 * 1024;
     private readonly object _debugLogLock = new();
 
