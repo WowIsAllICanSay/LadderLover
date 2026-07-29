@@ -28,6 +28,7 @@ public class LadderLover : BaseSettingsPlugin<LadderLoverSettings>
     private DateTime _lastCacheCheckUtc = DateTime.MinValue;
 
     private readonly Dictionary<uint, GroundItemOwnership> _resolvedItems = new();
+    private readonly HashSet<uint> _alertedItems = new();
     private Dictionary<string, List<string>> _uniqueArtMapping;
     private bool _uniqueArtMappingLoaded;
 
@@ -91,6 +92,8 @@ public class LadderLover : BaseSettingsPlugin<LadderLoverSettings>
         LogError(message);
     }
 
+    private const string AlertWavName = "alert.wav";
+
     public override bool Initialise()
     {
         Name = "LadderLover";
@@ -98,8 +101,11 @@ public class LadderLover : BaseSettingsPlugin<LadderLoverSettings>
         _ownershipCache.LoadFromDisk();
         _debugLogPath = Path.Combine(ConfigDirectory, "debug.log");
 
+        _soundFilePath = Path.Combine(ConfigDirectory, AlertWavName);
+
         Settings.SaveUsernameHandler = OnSaveUsername;
         Settings.LeagueSelectedHandler = OnLeagueSelected;
+        Settings.SoundSettings.TestSound.OnPressed += TestSound;
 
         UpdateCacheStatusDisplay();
         if (Debug) DebugLog($"LadderLover init. Cache ready={_ownershipCache.IsReady}, count={_ownershipCache.Count}, configDir={ConfigDirectory}");
@@ -116,6 +122,7 @@ public class LadderLover : BaseSettingsPlugin<LadderLoverSettings>
     public override void AreaChange(AreaInstance area)
     {
         _resolvedItems.Clear();
+        _alertedItems.Clear();
         _debugUniqueCount = 0;
         _debugUnidentifiedCount = 0;
         _debugNameFoundCount = 0;
@@ -150,7 +157,6 @@ public class LadderLover : BaseSettingsPlugin<LadderLoverSettings>
         Settings.IsFetching = true;
         Settings.FetchStatus = "";
         Settings.AvailableLeagues.Clear();
-        Settings.SelectedLeagueIdentifier = "";
 
         var user = username.Trim();
         if (Debug) DebugLog($"Fetching curio leagues for {user}");
@@ -502,6 +508,7 @@ public class LadderLover : BaseSettingsPlugin<LadderLoverSettings>
                         if (_ownershipCache.TryGetOwnership(candidate, out _))
                         {
                             _resolvedItems[itemEntity.Id] = new GroundItemOwnership(itemEntity.Id, candidate, false, labelOnGround, OwnershipState.Resolved);
+                            TryAlertNotOwned(itemEntity.Id, candidate);
                             if (Debug)
                             {
                                 _debugUnidentifiedCount++;
@@ -549,6 +556,7 @@ public class LadderLover : BaseSettingsPlugin<LadderLoverSettings>
             if (_ownershipCache.TryGetOwnership(uniqueName, out _))
             {
                 _resolvedItems[itemEntity.Id] = new GroundItemOwnership(itemEntity.Id, uniqueName, false, labelOnGround, OwnershipState.Resolved);
+                TryAlertNotOwned(itemEntity.Id, uniqueName);
                 if (Debug)
                 {
                     _debugNameFoundCount++;
@@ -596,6 +604,44 @@ public class LadderLover : BaseSettingsPlugin<LadderLoverSettings>
         }
 
         return null;
+    }
+
+    private void TryAlertNotOwned(uint entityId, string uniqueName)
+    {
+        if (!Settings.SoundSettings.EnableAlertSound)
+        {
+            return;
+        }
+
+        if (!_alertedItems.Add(entityId))
+        {
+            return;
+        }
+
+        PlayAlertSound();
+        if (Debug) DebugLog($"Alert sound played for not-owned unique: \"{uniqueName}\" (id={entityId})");
+    }
+
+    private void TestSound()
+    {
+        PlayAlertSound();
+        if (Debug) DebugLog("Test sound played");
+    }
+
+    private void PlayAlertSound()
+    {
+        try
+        {
+            if (File.Exists(_soundFilePath))
+            {
+                GameController.SoundController.PlaySound(_soundFilePath, Settings.SoundSettings.Volume.Value);
+            }
+            else if (Debug) DebugLogError($"Sound file not found at {_soundFilePath}. Place a wav file named {AlertWavName} in your config directory.");
+        }
+        catch (Exception ex)
+        {
+            if (Debug) DebugLogError($"Failed to play alert sound: {ex.Message}");
+        }
     }
 
     private void DrawGroundItemLabels()

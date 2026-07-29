@@ -30,6 +30,9 @@ public class LadderLoverSettings : ISettings
     [Menu("Label Display")]
     public LabelSettings LabelSettings { get; set; } = new LabelSettings();
 
+    [Menu("Sound")]
+    public SoundSettings SoundSettings { get; set; } = new SoundSettings();
+
     [Menu("Debug")]
     public DebugSettings DebugSettings { get; set; } = new DebugSettings();
 
@@ -170,4 +173,20 @@ public class DebugSettings
 {
     [Menu(null, "Enable debug logging to ExileAPI console. Off by default to avoid large log files.")]
     public ToggleNode EnableDebugLogging { get; set; } = new ToggleNode(false);
+}
+
+[Submenu(CollapsedByDefault = false)]
+[SupportedOSPlatform("windows")]
+public class SoundSettings
+{
+    [Menu(null, "Play a sound when an unowned unique drops. Only plays once per item. " +
+                "Requires alert.wav in the plugin config folder.")]
+    public ToggleNode EnableAlertSound { get; set; } = new ToggleNode(false);
+
+    [Menu(null, "Volume (0 to 1)")]
+    public RangeNode<float> Volume { get; set; } = new RangeNode<float>(0.5f, 0f, 1f);
+
+    [JsonIgnore]
+    [Menu(null, "Test the alert sound")]
+    public ButtonNode TestSound { get; set; } = new ButtonNode();
 }

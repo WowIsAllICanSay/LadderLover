@@ -15,6 +15,10 @@ Works with both identified and unidentified uniques. Identified items are matche
 3. Hit Save. A league dropdown will appear. Pick your curio league.
 4. The plugin fetches your unowned unique list from poeladder and caches it locally for 2 hours.
 
+## Optional: alert sound
+
+To get a sound alert when an unowned unique drops, place a wav file named `alert.wav` in the plugin config folder. The config folder path is shown in the debug log when the plugin loads. No wav file is included with the plugin.
+
 ## How ownership works
 
 The poeladder filters endpoint returns a list of uniques that are not yet in your collection. Anything in that list is shown as not owned. Anything not in the list is assumed owned. The cache refreshes every 2 hours, so a unique you just picked up may still show as not owned until the next refresh.
