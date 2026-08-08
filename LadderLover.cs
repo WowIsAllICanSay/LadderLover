@@ -107,6 +107,7 @@ public class LadderLover : BaseSettingsPlugin<LadderLoverSettings>
         Settings.SaveUsernameHandler = OnSaveUsername;
         Settings.LeagueSelectedHandler = OnLeagueSelected;
         Settings.SoundSettings.TestSound.OnPressed += TestSound;
+        Settings.AlwaysNeedSettings.RebuildSet(Settings.AlwaysNeedSettings.AlwaysNeedText);
 
         UpdateCacheStatusDisplay();
         if (Debug) DebugLog($"LadderLover init. Cache ready={_ownershipCache.IsReady}, count={_ownershipCache.Count}, configDir={ConfigDirectory}");
@@ -508,37 +509,55 @@ public class LadderLover : BaseSettingsPlugin<LadderLoverSettings>
 
                 if (candidates is { Count: > 0 })
                 {
-                    var resolvedViaArt = false;
-                    foreach (var candidate in candidates)
+                    var alwaysNeedMatch = candidates.FirstOrDefault(c => Settings.AlwaysNeedSettings.Contains(c));
+                    if (alwaysNeedMatch != null)
                     {
-                        if (_ownershipCache.TryGetOwnership(candidate, out _))
-                        {
-                            _resolvedItems[itemEntity.Id] = new GroundItemOwnership(itemEntity.Id, candidate, false, labelOnGround, OwnershipState.Resolved);
-                            TryAlertNotOwned(itemEntity.Id, candidate);
-                            if (Debug)
-                            {
-                                _debugUnidentifiedCount++;
-                                _debugNameFoundCount++;
-                                if (_debugUnidentifiedCount <= 3)
-                                {
-                                    DebugLog($"Unidentified unique resolved via art to \"{candidate}\" (in cache = not owned, art={artPath})");
-                                }
-                            }
-                            resolvedViaArt = true;
-                            break;
-                        }
-                    }
-
-                    if (!resolvedViaArt)
-                    {
-                        _resolvedItems[itemEntity.Id] = new GroundItemOwnership(itemEntity.Id, candidates[0], true, labelOnGround, OwnershipState.Resolved);
+                        _resolvedItems[itemEntity.Id] = new GroundItemOwnership(itemEntity.Id, alwaysNeedMatch, false, labelOnGround, OwnershipState.Resolved);
+                        TryAlertNotOwned(itemEntity.Id, alwaysNeedMatch);
                         if (Debug)
                         {
                             _debugUnidentifiedCount++;
-                            _debugNameMissCount++;
+                            _debugNameFoundCount++;
                             if (_debugUnidentifiedCount <= 3)
                             {
-                                DebugLog($"Unidentified unique resolved via art to \"{candidates[0]}\" (NOT in cache = owned, art={artPath}, {candidates.Count} candidates)");
+                                DebugLog($"Unidentified unique \"{alwaysNeedMatch}\" matched always-need list (art={artPath})");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        var resolvedViaArt = false;
+                        foreach (var candidate in candidates)
+                        {
+                            if (_ownershipCache.TryGetOwnership(candidate, out _))
+                            {
+                                _resolvedItems[itemEntity.Id] = new GroundItemOwnership(itemEntity.Id, candidate, false, labelOnGround, OwnershipState.Resolved);
+                                TryAlertNotOwned(itemEntity.Id, candidate);
+                                if (Debug)
+                                {
+                                    _debugUnidentifiedCount++;
+                                    _debugNameFoundCount++;
+                                    if (_debugUnidentifiedCount <= 3)
+                                    {
+                                        DebugLog($"Unidentified unique resolved via art to \"{candidate}\" (in cache = not owned, art={artPath})");
+                                    }
+                                }
+                                resolvedViaArt = true;
+                                break;
+                            }
+                        }
+
+                        if (!resolvedViaArt)
+                        {
+                            _resolvedItems[itemEntity.Id] = new GroundItemOwnership(itemEntity.Id, candidates[0], true, labelOnGround, OwnershipState.Resolved);
+                            if (Debug)
+                            {
+                                _debugUnidentifiedCount++;
+                                _debugNameMissCount++;
+                                if (_debugUnidentifiedCount <= 3)
+                                {
+                                    DebugLog($"Unidentified unique resolved via art to \"{candidates[0]}\" (NOT in cache = owned, art={artPath}, {candidates.Count} candidates)");
+                                }
                             }
                         }
                     }
@@ -559,7 +578,20 @@ public class LadderLover : BaseSettingsPlugin<LadderLoverSettings>
                 continue;
             }
 
-            if (_ownershipCache.TryGetOwnership(uniqueName, out _))
+            if (Settings.AlwaysNeedSettings.Contains(uniqueName))
+            {
+                _resolvedItems[itemEntity.Id] = new GroundItemOwnership(itemEntity.Id, uniqueName, false, labelOnGround, OwnershipState.Resolved);
+                TryAlertNotOwned(itemEntity.Id, uniqueName);
+                if (Debug)
+                {
+                    _debugNameFoundCount++;
+                    if (_debugNameFoundCount <= 3)
+                    {
+                        DebugLog($"Unique \"{uniqueName}\" matched always-need list");
+                    }
+                }
+            }
+            else if (_ownershipCache.TryGetOwnership(uniqueName, out _))
             {
                 _resolvedItems[itemEntity.Id] = new GroundItemOwnership(itemEntity.Id, uniqueName, false, labelOnGround, OwnershipState.Resolved);
                 TryAlertNotOwned(itemEntity.Id, uniqueName);

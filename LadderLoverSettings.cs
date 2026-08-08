@@ -30,6 +30,9 @@ public class LadderLoverSettings : ISettings
     [Menu("Label Display")]
     public LabelSettings LabelSettings { get; set; } = new LabelSettings();
 
+    [Menu("Always Need List")]
+    public AlwaysNeedSettings AlwaysNeedSettings { get; set; } = new AlwaysNeedSettings();
+
     [Menu("Sound")]
     public SoundSettings SoundSettings { get; set; } = new SoundSettings();
 
@@ -165,6 +168,88 @@ public class LabelSettings
 
     [Menu(null, "Text shown on uniques you do own")]
     public TextNode OwnedText { get; set; } = new TextNode("OWNED");
+}
+
+[Submenu(CollapsedByDefault = true)]
+[SupportedOSPlatform("windows")]
+public class AlwaysNeedSettings
+{
+    public string AlwaysNeedText { get; set; } = "";
+
+    [JsonIgnore]
+    public System.Collections.Generic.HashSet<string> AlwaysNeedSet { get; set; } = new(System.StringComparer.OrdinalIgnoreCase);
+
+    [JsonIgnore]
+    public CustomNode AlwaysNeedInput { get; }
+
+    private string _buffer = "";
+    private bool _bufferInitialized = false;
+
+    public AlwaysNeedSettings()
+    {
+        AlwaysNeedInput = new CustomNode
+        {
+            DrawDelegate = () =>
+            {
+                if (!_bufferInitialized)
+                {
+                    _buffer = AlwaysNeedText ?? "";
+                    _bufferInitialized = true;
+                }
+
+                ImGui.TextWrapped("Enter unique names, one per line. These will always show as NEED, bypassing the poeladder ownership check.");
+                ImGui.Spacing();
+
+                const int bufferSize = 8192;
+                if (_buffer.Length < bufferSize)
+                {
+                    var padded = _buffer + new string('\0', bufferSize - _buffer.Length);
+                    _buffer = padded;
+                }
+
+                ImGui.InputTextMultiline("##always_need_input", ref _buffer, (uint)_buffer.Length, new System.Numerics.Vector2(-1, 200));
+
+                var cleanBuffer = _buffer.TrimEnd('\0');
+                var changed = cleanBuffer != (AlwaysNeedText ?? "");
+                if (changed)
+                {
+                    AlwaysNeedText = cleanBuffer;
+                    RebuildSet(cleanBuffer);
+                }
+
+                ImGui.Spacing();
+                ImGui.TextDisabled($"({AlwaysNeedSet.Count} names)");
+            }
+        };
+    }
+
+    public void RebuildSet(string text)
+    {
+        AlwaysNeedSet = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return;
+        }
+
+        foreach (var line in text.Split('\n'))
+        {
+            var name = line.Trim().Replace('\x2019', '\'');
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                AlwaysNeedSet.Add(name);
+            }
+        }
+    }
+
+    public bool Contains(string uniqueName)
+    {
+        if (string.IsNullOrWhiteSpace(uniqueName) || AlwaysNeedSet == null)
+        {
+            return false;
+        }
+
+        return AlwaysNeedSet.Contains(uniqueName.Replace('\x2019', '\'').Trim());
+    }
 }
 
 [Submenu(CollapsedByDefault = true)]
